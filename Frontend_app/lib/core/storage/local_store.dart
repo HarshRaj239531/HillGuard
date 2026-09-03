@@ -217,6 +217,42 @@ class LocalStore extends ChangeNotifier {
     }
   }
 
+  // Delete a single Landslide report
+  Future<void> deleteLandslideReport(String reportId) async {
+    _landslideReports.removeWhere((r) => r.id == reportId);
+    await _persistLandslides();
+    notifyListeners();
+  }
+
+  // Delete a single Road report
+  Future<void> deleteRoadReport(String reportId) async {
+    _roadReports.removeWhere((r) => r.id == reportId);
+    await _persistRoads();
+    notifyListeners();
+  }
+
+  // Clear all test reports
+  Future<void> clearAllReports() async {
+    _landslideReports.clear();
+    _roadReports.clear();
+    _meshQueue.clear();
+    await _persistLandslides();
+    await _persistRoads();
+    await _persistMeshQueue();
+    notifyListeners();
+  }
+
+  // Reset database back to clean initial demo data
+  Future<void> resetToDemoData() async {
+    _landslideReports.clear();
+    _roadReports.clear();
+    _meshQueue.clear();
+    _seenPacketIds.clear();
+    _seedInitialData();
+    await _persistAll();
+    notifyListeners();
+  }
+
   Future<void> _persistLandslides() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(

@@ -513,27 +513,71 @@ class _DashboardTab extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withAlpha(20),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${landslides.length + roads.length} Reports',
-                  style: const TextStyle(fontSize: 11, color: AppTheme.primary, fontWeight: FontWeight.bold),
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withAlpha(20),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${landslides.length + roads.length} Reports',
+                      style: const TextStyle(fontSize: 11, color: AppTheme.primary, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert, size: 18, color: AppTheme.textMuted),
+                    tooltip: 'Manage Feed',
+                    onSelected: (value) async {
+                      if (value == 'clear_all') {
+                        _confirmClearAll(context);
+                      } else if (value == 'reset_demo') {
+                        await context.read<LocalStore>().resetToDemoData();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Feed reset to clean initial demo data')),
+                          );
+                        }
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'reset_demo',
+                        child: Row(
+                          children: [
+                            Icon(Icons.restart_alt, size: 18, color: AppTheme.primary),
+                            SizedBox(width: 8),
+                            Text('Reset Demo Data', style: TextStyle(fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'clear_all',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_sweep_outlined, size: 18, color: AppTheme.severityCritical),
+                            SizedBox(width: 8),
+                            Text('Delete All Reports', style: TextStyle(fontSize: 13, color: AppTheme.severityCritical)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),
 
           const SizedBox(height: 12),
 
-          // Render Landslides
-          ...landslides.map((report) => _buildLandslideCard(report)),
+          // Render Landslides with Swipe to Delete
+          ...landslides.map((report) => _buildLandslideCard(context, report)),
 
-          // Render Roads
-          ...roads.map((road) => _buildRoadCard(road)),
+          // Render Roads with Swipe to Delete
+          ...roads.map((road) => _buildRoadCard(context, road)),
 
           const SizedBox(height: 80),
         ],
@@ -541,137 +585,246 @@ class _DashboardTab extends StatelessWidget {
     );
   }
 
-  Widget _buildLandslideCard(LandslideReport report) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  void _confirmClearAll(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Clear All Reports?'),
+        content: const Text('This will delete all test landslide and road reports from your local device database.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.severityCritical, foregroundColor: Colors.white),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await context.read<LocalStore>().clearAllReports();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('All local reports cleared')),
+                );
+              }
+            },
+            child: const Text('Delete All'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLandslideCard(BuildContext context, LandslideReport report) {
+    return Dismissible(
+      key: ValueKey(report.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.red.shade400,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                // Severity Pill with soft light background
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: report.severity.color.withAlpha(25),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: report.severity.color.withAlpha(80)),
-                  ),
-                  child: Text(
-                    report.severity.displayName,
-                    style: TextStyle(color: report.severity.color, fontWeight: FontWeight.bold, fontSize: 10),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceElevated,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text('B1 LANDSLIDE', style: TextStyle(color: AppTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
-                ),
-                const Spacer(),
-                _buildSyncBadge(report.syncStatus, report.relayHops),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              report.locationDescription,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimary),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              report.plainLanguageExplanation,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.3),
-            ),
-            const SizedBox(height: 10),
-            const Divider(height: 1, color: AppTheme.borderSubtle),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${report.estimatedSlopeAngle.toStringAsFixed(0)}° Slope • ${report.detectedFeatures.length} Indicators',
-                  style: const TextStyle(fontSize: 11, color: AppTheme.textMuted, fontWeight: FontWeight.w500),
-                ),
-                Text(
-                  DateFormat('MMM d, HH:mm').format(report.timestamp),
-                  style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
-                ),
-              ],
-            ),
+            Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+            SizedBox(width: 6),
+            Icon(Icons.delete_outline, color: Colors.white, size: 22),
           ],
+        ),
+      ),
+      onDismissed: (_) {
+        context.read<LocalStore>().deleteLandslideReport(report.id);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 2),
+            content: Text('Deleted landslide report: ${report.locationDescription}'),
+          ),
+        );
+      },
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 12),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: report.severity.color.withAlpha(25),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: report.severity.color.withAlpha(80)),
+                    ),
+                    child: Text(
+                      report.severity.displayName,
+                      style: TextStyle(color: report.severity.color, fontWeight: FontWeight.bold, fontSize: 10),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceElevated,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text('B1 LANDSLIDE', style: TextStyle(color: AppTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
+                  ),
+                  const Spacer(),
+                  _buildSyncBadge(report.syncStatus, report.relayHops),
+                  const SizedBox(width: 6),
+                  InkWell(
+                    onTap: () {
+                      context.read<LocalStore>().deleteLandslideReport(report.id);
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(Icons.close_rounded, size: 16, color: AppTheme.textMuted),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                report.locationDescription,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimary),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                report.plainLanguageExplanation,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.3),
+              ),
+              const SizedBox(height: 10),
+              const Divider(height: 1, color: AppTheme.borderSubtle),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${report.estimatedSlopeAngle.toStringAsFixed(0)}° Slope • ${report.detectedFeatures.length} Indicators',
+                    style: const TextStyle(fontSize: 11, color: AppTheme.textMuted, fontWeight: FontWeight.w500),
+                  ),
+                  Text(
+                    DateFormat('MMM d, HH:mm').format(report.timestamp),
+                    style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildRoadCard(RoadReport road) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildRoadCard(BuildContext context, RoadReport road) {
+    return Dismissible(
+      key: ValueKey(road.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.red.shade400,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                // Road Status Pill with soft tint
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: road.status.color.withAlpha(25),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: road.status.color.withAlpha(80)),
-                  ),
-                  child: Text(
-                    road.status.label,
-                    style: TextStyle(color: road.status.color, fontWeight: FontWeight.bold, fontSize: 10),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  road.roadIdentifier,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary),
-                ),
-                const Spacer(),
-                _buildSyncBadge(road.syncStatus, road.relayHops),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              road.sectionName,
-              style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600, fontSize: 13),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              road.description,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.3),
-            ),
-            const SizedBox(height: 10),
-            const Divider(height: 1, color: AppTheme.borderSubtle),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  road.obstacleType.label,
-                  style: const TextStyle(fontSize: 11, color: AppTheme.textMuted, fontWeight: FontWeight.w500),
-                ),
-                Text(
-                  DateFormat('MMM d, HH:mm').format(road.timestamp),
-                  style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
-                ),
-              ],
-            ),
+            Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+            SizedBox(width: 6),
+            Icon(Icons.delete_outline, color: Colors.white, size: 22),
           ],
+        ),
+      ),
+      onDismissed: (_) {
+        context.read<LocalStore>().deleteRoadReport(road.id);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 2),
+            content: Text('Deleted road report: ${road.roadIdentifier}'),
+          ),
+        );
+      },
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 12),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: road.status.color.withAlpha(25),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: road.status.color.withAlpha(80)),
+                    ),
+                    child: Text(
+                      road.status.label,
+                      style: TextStyle(color: road.status.color, fontWeight: FontWeight.bold, fontSize: 10),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    road.roadIdentifier,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary),
+                  ),
+                  const Spacer(),
+                  _buildSyncBadge(road.syncStatus, road.relayHops),
+                  const SizedBox(width: 6),
+                  InkWell(
+                    onTap: () {
+                      context.read<LocalStore>().deleteRoadReport(road.id);
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(Icons.close_rounded, size: 16, color: AppTheme.textMuted),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                road.sectionName,
+                style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                road.description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.3),
+              ),
+              const SizedBox(height: 10),
+              const Divider(height: 1, color: AppTheme.borderSubtle),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    road.obstacleType.label,
+                    style: const TextStyle(fontSize: 11, color: AppTheme.textMuted, fontWeight: FontWeight.w500),
+                  ),
+                  Text(
+                    DateFormat('MMM d, HH:mm').format(road.timestamp),
+                    style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
