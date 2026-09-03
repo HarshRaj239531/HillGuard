@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'core/location/location_service.dart';
 import 'core/storage/local_store.dart';
 import 'core/mesh/mesh_engine.dart';
 import 'core/sync/sync_manager.dart';
@@ -14,6 +15,7 @@ void main() async {
 
   final meshEngine = MeshEngine(localStore: localStore);
   final syncManager = SyncManager(localStore: localStore);
+  final locationService = LocationService();
 
   runApp(
     MultiProvider(
@@ -21,6 +23,7 @@ void main() async {
         ChangeNotifierProvider<LocalStore>.value(value: localStore),
         ChangeNotifierProvider<MeshEngine>.value(value: meshEngine),
         ChangeNotifierProvider<SyncManager>.value(value: syncManager),
+        ChangeNotifierProvider<LocationService>.value(value: locationService),
       ],
       child: const HillGuardApp(),
     ),

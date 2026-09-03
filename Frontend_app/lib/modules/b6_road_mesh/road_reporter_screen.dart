@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import '../../core/location/location_service.dart';
 import '../../core/models/hazard_types.dart';
 import '../../core/models/road_report.dart';
 import '../../core/storage/local_store.dart';
@@ -30,8 +31,8 @@ class _RoadReporterScreenState extends State<RoadReporterScreen> {
   bool _passableTwoWheeler = false;
   bool _passable4x4 = false;
 
-  final double _latitude = 26.9215;
-  final double _longitude = 88.3142;
+  double _latitude = 26.9215;
+  double _longitude = 88.3142;
 
   final List<String> _popularRoads = [
     'NH-55 (Hill Cart Road)',
@@ -41,6 +42,18 @@ class _RoadReporterScreenState extends State<RoadReporterScreen> {
     'Pankhabari Heritage Cut',
     'Rishi Road (Kalimpong - Lava)',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final loc = context.read<LocationService>();
+      setState(() {
+        _latitude = loc.currentLat;
+        _longitude = loc.currentLon;
+      });
+    });
+  }
 
   @override
   void dispose() {

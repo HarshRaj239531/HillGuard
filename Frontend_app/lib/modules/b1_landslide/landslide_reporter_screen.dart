@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import '../../core/location/location_service.dart';
 import '../../core/models/hazard_types.dart';
 import '../../core/models/landslide_report.dart';
 import '../../core/storage/local_store.dart';
@@ -33,10 +34,23 @@ class _LandslideReporterScreenState extends State<LandslideReporterScreen> {
     LandslideFeature.waterSeepage,
   };
 
-  // Default coordinate (Darjeeling/Kurseong Himalayan belt)
+  // Real device GPS coordinates (defaulting to Kurseong / Darjeeling corridor)
   double _latitude = 26.9048;
   double _longitude = 88.3375;
-  final double _altitude = 1520.0;
+  double _altitude = 1520.0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final loc = context.read<LocationService>();
+      setState(() {
+        _latitude = loc.currentLat;
+        _longitude = loc.currentLon;
+        _altitude = loc.currentAlt;
+      });
+    });
+  }
 
   @override
   void dispose() {
@@ -136,16 +150,25 @@ class _LandslideReporterScreenState extends State<LandslideReporterScreen> {
         title: const Text('Report Landslide Hazard (B1)'),
         actions: [
           IconButton(
-            tooltip: 'Simulate GPS Refresh',
+            tooltip: 'Refresh Device GPS Location',
             icon: const Icon(Icons.my_location, color: AppTheme.primary),
-            onPressed: () {
+            onPressed: () async {
+              final loc = context.read<LocationService>();
+              await loc.refreshLocation();
               setState(() {
-                _latitude = 26.9120;
-                _longitude = 88.3410;
+                _latitude = loc.currentLat;
+                _longitude = loc.currentLon;
+                _altitude = loc.currentAlt;
               });
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('GPS coordinates updated: 26.9120° N, 88.3410° E')),
-              );
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Real GPS Locked: ${_latitude.toStringAsFixed(4)}° N, ${_longitude.toStringAsFixed(4)}° E (±${loc.accuracyMeters.toStringAsFixed(0)}m)',
+                    ),
+                  ),
+                );
+              }
             },
           ),
         ],

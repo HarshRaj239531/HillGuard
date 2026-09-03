@@ -9,13 +9,16 @@ import '../models/road_report.dart';
 import '../models/mesh_packet.dart';
 import '../storage/local_store.dart';
 
+import 'p2p_socket_service.dart';
+
 class MeshPeer {
   final String peerId;
   final String name;
-  final String role; // e.g. "Patrol Vehicle", "Relief Camp Node", "Local Resident"
-  final int signalStrengthDbm; // e.g. -65 dBm
+  final String role; // e.g. "Patrol Vehicle", "Relief Camp Node", "Physical Hotspot Peer"
+  final int signalStrengthDbm; // e.g. -58 dBm
   final DateTime lastSeen;
   final bool isDirectNeighbor;
+  final bool isPhysical;
 
   MeshPeer({
     required this.peerId,
@@ -24,6 +27,7 @@ class MeshPeer {
     required this.signalStrengthDbm,
     required this.lastSeen,
     this.isDirectNeighbor = true,
+    this.isPhysical = false,
   });
 }
 
@@ -51,20 +55,52 @@ class MeshEngine extends ChangeNotifier {
   final LocalStore localStore;
   final String deviceId = 'node-${const Uuid().v4().substring(0, 6)}';
 
-  final List<MeshPeer> _activePeers = [];
+  late final P2PSocketService _p2pSocketService;
+  final List<MeshPeer> _simulatedPeers = [];
+  final List<MeshPeer> _physicalPeers = [];
   final List<MeshRelayEvent> _relayLogs = [];
   bool _isMeshBroadcasting = true;
 
-  List<MeshPeer> get activePeers => List.unmodifiable(_activePeers);
+  List<MeshPeer> get activePeers => [..._physicalPeers, ..._simulatedPeers];
   List<MeshRelayEvent> get relayLogs => List.unmodifiable(_relayLogs);
   bool get isMeshBroadcasting => _isMeshBroadcasting;
+  int get physicalPeerCount => _physicalPeers.length;
 
   MeshEngine({required this.localStore}) {
     _initSimulatedPeers();
+    _initP2PSocketService();
+  }
+
+  void _initP2PSocketService() {
+    _p2pSocketService = P2PSocketService(
+      localNodeId: deviceId,
+      localNodeName: 'Mobile Unit ${deviceId.substring(deviceId.length - 4).toUpperCase()}',
+      onPacketReceived: (packet, fromIp) {
+        ingestIncomingPacket(packet, 'Hotspot Peer ($fromIp)');
+      },
+      onPeersUpdated: (discovered) {
+        _physicalPeers.clear();
+        for (final p in discovered) {
+          _physicalPeers.add(
+            MeshPeer(
+              peerId: p.peerId,
+              name: '${p.name} (${p.address.address})',
+              role: 'Physical Hotspot / Wi-Fi Peer',
+              signalStrengthDbm: -45,
+              lastSeen: p.lastSeen,
+              isDirectNeighbor: true,
+              isPhysical: true,
+            ),
+          );
+        }
+        notifyListeners();
+      },
+    );
+    _p2pSocketService.start();
   }
 
   void _initSimulatedPeers() {
-    _activePeers.addAll([
+    _simulatedPeers.addAll([
       MeshPeer(
         peerId: 'peer-relay-beta',
         name: 'Rescue Van 04 (BLE)',
@@ -109,9 +145,14 @@ class MeshEngine extends ChangeNotifier {
 
     await localStore.enqueueMeshPacket(packet);
 
+    // Physical Socket Broadcast to all connected phones
+    if (_isMeshBroadcasting) {
+      _p2pSocketService.broadcastPacket(packet);
+    }
+
     _logEvent(
       title: 'Dispatched B1 Landslide Packet to Mesh',
-      description: 'Broadcasting ${report.locationDescription} [${report.severity.displayName}] to ${_activePeers.length} direct BLE peers.',
+      description: 'Broadcasting ${report.locationDescription} [${report.severity.displayName}] to physical & BLE peers.',
       packetId: packet.packetId,
       hopCount: 0,
       isIncoming: false,
@@ -133,9 +174,14 @@ class MeshEngine extends ChangeNotifier {
 
     await localStore.enqueueMeshPacket(packet);
 
+    // Physical Socket Broadcast to all connected phones
+    if (_isMeshBroadcasting) {
+      _p2pSocketService.broadcastPacket(packet);
+    }
+
     _logEvent(
       title: 'Dispatched B6 Road Blockage Packet to Mesh',
-      description: 'Relaying ${report.roadIdentifier} status: ${report.status.label} across peer mesh.',
+      description: 'Relaying ${report.roadIdentifier} status: ${report.status.label} across physical & BLE peers.',
       packetId: packet.packetId,
       hopCount: 0,
       isIncoming: false,
@@ -197,7 +243,8 @@ class MeshEngine extends ChangeNotifier {
   Future<void> simulatePeerRelayInjection() async {
     final random = Random();
     final isLandslide = random.nextBool();
-    final randomPeer = _activePeers[random.nextInt(_activePeers.length)].peerId;
+    final peersList = activePeers;
+    final randomPeer = peersList.isNotEmpty ? peersList[random.nextInt(peersList.length)].peerId : 'offline-peer-unit';
 
     if (isLandslide) {
       final simulatedReport = LandslideReport(
@@ -297,4 +344,11 @@ class MeshEngine extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  @override
+  void dispose() {
+    _p2pSocketService.stop();
+    super.dispose();
+  }
 }
+

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import '../../core/location/location_service.dart';
 import '../../core/models/landslide_report.dart';
 import '../../core/models/road_report.dart';
 import '../../core/storage/local_store.dart';
@@ -16,23 +17,92 @@ class DisasterMapScreen extends StatefulWidget {
   State<DisasterMapScreen> createState() => _DisasterMapScreenState();
 }
 
-class _DisasterMapScreenState extends State<DisasterMapScreen> {
+class _DisasterMapScreenState extends State<DisasterMapScreen> with SingleTickerProviderStateMixin {
   final MapController _mapController = MapController();
   String _filter = 'ALL'; // 'ALL', 'B1_LANDSLIDE', 'B6_ROAD'
+  bool _offlineTacticalMode = false;
 
-  // Center on Darjeeling / Kurseong / NH-55 mountain corridor
-  final LatLng _initialCenter = const LatLng(26.9100, 88.3250);
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+
+    _pulseAnimation = Tween<double>(begin: 0.8, end: 1.3).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  void _centerOnUserGps(LatLng userPos) {
+    _mapController.move(userPos, 14.0);
+  }
 
   @override
   Widget build(BuildContext context) {
     final localStore = context.watch<LocalStore>();
+    final locationService = context.watch<LocationService>();
 
+    final userPos = locationService.currentLatLng;
     final landslides = localStore.landslideReports;
     final roads = localStore.roadReports;
 
     final markers = <Marker>[];
 
-    // Add Landslide Markers
+    // 1. Add User Real GPS Marker
+    markers.add(
+      Marker(
+        point: userPos,
+        width: 60,
+        height: 60,
+        child: AnimatedBuilder(
+          animation: _pulseAnimation,
+          builder: (context, child) {
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 38 * _pulseAnimation.value,
+                  height: 38 * _pulseAnimation.value,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withAlpha(50),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primary.withAlpha(180),
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+
+    // 2. Add Landslide Markers
     if (_filter == 'ALL' || _filter == 'B1_LANDSLIDE') {
       for (final report in landslides) {
         markers.add(
@@ -63,7 +133,7 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> {
       }
     }
 
-    // Add Road Blockage Markers
+    // 3. Add Road Blockage Markers
     if (_filter == 'ALL' || _filter == 'B6_ROAD') {
       for (final road in roads) {
         markers.add(
@@ -97,60 +167,173 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Flutter Map with Dark Tile Styling
+          // Flutter Map with Dark Tile Styling & Vector Accuracy Circles
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter: _initialCenter,
-              initialZoom: 12.5,
-              minZoom: 9,
+              initialCenter: userPos,
+              initialZoom: 13.0,
+              minZoom: 8,
               maxZoom: 18,
             ),
             children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.hillguard.app',
+              if (!_offlineTacticalMode)
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.hillguard.app',
+                  fallbackUrl: '',
+                ),
+              // Concentric GPS Distance Rings (500m, 1km, 2km, 5km) for mountain awareness
+              CircleLayer(
+                circles: [
+                  CircleMarker(
+                    point: userPos,
+                    radius: 500,
+                    useRadiusInMeter: true,
+                    color: AppTheme.primary.withAlpha(15),
+                    borderColor: AppTheme.primary.withAlpha(80),
+                    borderStrokeWidth: 1.0,
+                  ),
+                  CircleMarker(
+                    point: userPos,
+                    radius: 1500,
+                    useRadiusInMeter: true,
+                    color: Colors.transparent,
+                    borderColor: AppTheme.accentTeal.withAlpha(60),
+                    borderStrokeWidth: 1.0,
+                  ),
+                  CircleMarker(
+                    point: userPos,
+                    radius: 3000,
+                    useRadiusInMeter: true,
+                    color: Colors.transparent,
+                    borderColor: AppTheme.meshActive.withAlpha(40),
+                    borderStrokeWidth: 1.0,
+                  ),
+                ],
               ),
               MarkerLayer(markers: markers),
             ],
           ),
 
-          // Top Floating Filter Bar
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppTheme.surfaceGlass,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.borderSubtle),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(120),
-                      blurRadius: 12,
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.layers, color: AppTheme.primary, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _buildFilterChip('ALL', 'All Hazards'),
-                            _buildFilterChip('B1_LANDSLIDE', 'Landslides (${landslides.length})'),
-                            _buildFilterChip('B6_ROAD', 'Road Blocks (${roads.length})'),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+          // Offline Tactical Grid Overlay (When tiles are unavailable without internet)
+          if (_offlineTacticalMode)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: _TacticalGridPainter(),
                 ),
               ),
+            ),
+
+          // Top Floating Bar: GPS Fix Status & Filters
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Live GPS telemetry badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceGlass,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.borderSubtle),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          locationService.hasGpsFix ? Icons.gps_fixed : Icons.gps_not_fixed,
+                          color: locationService.hasGpsFix ? AppTheme.severityLow : AppTheme.severityMedium,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'GPS: ${userPos.latitude.toStringAsFixed(4)}° N, ${userPos.longitude.toStringAsFixed(4)}° E • Alt: ${locationService.currentAlt.toStringAsFixed(0)}m',
+                            style: const TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 11,
+                              color: AppTheme.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        // Offline Tactical Mode Toggle
+                        GestureDetector(
+                          onTap: () {
+                            setState(() => _offlineTacticalMode = !_offlineTacticalMode);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                duration: const Duration(seconds: 2),
+                                content: Text(
+                                  _offlineTacticalMode
+                                      ? 'Offline Vector Tactical Mode ON (0% Internet)'
+                                      : 'Online Tile Mode ON',
+                                ),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _offlineTacticalMode ? AppTheme.primary : AppTheme.surfaceElevated,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              _offlineTacticalMode ? 'TACTICAL' : 'TILES',
+                              style: TextStyle(
+                                color: _offlineTacticalMode ? Colors.black : AppTheme.textMuted,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Filter Chips Row
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceGlass,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppTheme.borderSubtle),
+                    ),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _buildFilterChip('ALL', 'All Hazards'),
+                          _buildFilterChip('B1_LANDSLIDE', 'Landslides (${landslides.length})'),
+                          _buildFilterChip('B6_ROAD', 'Road Blocks (${roads.length})'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Snap to My GPS Button
+          Positioned(
+            right: 16,
+            bottom: 90,
+            child: FloatingActionButton.small(
+              backgroundColor: AppTheme.surfaceElevated,
+              foregroundColor: AppTheme.primary,
+              tooltip: 'Snap to My GPS Location',
+              onPressed: () {
+                _centerOnUserGps(userPos);
+                locationService.refreshLocation();
+              },
+              child: const Icon(Icons.my_location),
             ),
           ),
 
@@ -365,4 +548,27 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> {
       },
     );
   }
+}
+
+class _TacticalGridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0x2200E5FF)
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+
+    // Tactical crosshairs
+    canvas.drawLine(Offset(size.width / 2, 0), Offset(size.width / 2, size.height), paint);
+    canvas.drawLine(Offset(0, size.height / 2), Offset(size.width, size.height / 2), paint);
+
+    // Range rings
+    final center = Offset(size.width / 2, size.height / 2);
+    canvas.drawCircle(center, 80, paint);
+    canvas.drawCircle(center, 160, paint);
+    canvas.drawCircle(center, 240, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

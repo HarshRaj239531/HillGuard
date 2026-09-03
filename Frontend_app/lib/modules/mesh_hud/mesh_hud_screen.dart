@@ -90,16 +90,58 @@ class MeshHudScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildStatCol('DIRECT PEERS', '${meshEngine.activePeers.length}', AppTheme.primary),
-                    _buildStatCol('RELAY QUEUE', '${localStore.meshQueue.length}', AppTheme.meshActive),
+                    _buildStatCol('P2P PEERS', '${meshEngine.physicalPeerCount}', AppTheme.severityLow),
+                    _buildStatCol('SIM PEERS', '${meshEngine.activePeers.length - meshEngine.physicalPeerCount}', AppTheme.primary),
+                    _buildStatCol('QUEUE', '${localStore.meshQueue.length}', AppTheme.meshActive),
                     _buildStatCol(
-                      'INTERNET',
-                      syncManager.isOnline ? 'ONLINE' : 'OFFLINE (MESH ONLY)',
+                      'NET',
+                      syncManager.isOnline ? 'ONLINE' : 'OFFLINE',
                       syncManager.isOnline ? AppTheme.severityLow : AppTheme.severityHigh,
                     ),
                   ],
                 ),
               ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Real Device Offline Hotspot Instructions Card
+          Card(
+            color: AppTheme.surfaceElevated,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: const BorderSide(color: AppTheme.borderSubtle),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(Icons.wifi_tethering, color: AppTheme.accentTeal, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'ZERO-INTERNET PHONE PAIRING',
+                        style: TextStyle(
+                          color: AppTheme.accentTeal,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '1. Turn ON Portable Hotspot on Phone A (no SIM/data needed).\n'
+                    '2. Connect Phone B to Phone A\'s Wi-Fi network.\n'
+                    '3. Both phones will auto-discover over UDP 44555 and sync all B1 & B6 hazard reports in real-time over local TCP 44556 sockets!',
+                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 11, height: 1.4),
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -198,12 +240,45 @@ class MeshHudScreen extends StatelessWidget {
           const SizedBox(height: 8),
           ...meshEngine.activePeers.map((peer) => Card(
                 margin: const EdgeInsets.only(bottom: 8),
-                child: ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: AppTheme.surfaceElevated,
-                    child: Icon(Icons.bluetooth_audio, color: AppTheme.primary, size: 20),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: peer.isPhysical ? AppTheme.severityLow : AppTheme.borderSubtle,
+                    width: peer.isPhysical ? 1.5 : 1,
                   ),
-                  title: Text(peer.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                ),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: peer.isPhysical ? AppTheme.severityLow.withAlpha(40) : AppTheme.surfaceElevated,
+                    child: Icon(
+                      peer.isPhysical ? Icons.wifi_tethering : Icons.bluetooth_audio,
+                      color: peer.isPhysical ? AppTheme.severityLow : AppTheme.primary,
+                      size: 20,
+                    ),
+                  ),
+                  title: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          peer.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (peer.isPhysical)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppTheme.severityLow,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'PHYSICAL',
+                            style: TextStyle(color: Colors.black, fontSize: 9, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                    ],
+                  ),
                   subtitle: Text('${peer.role} • ID: ${peer.peerId}', style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
                   trailing: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -214,7 +289,11 @@ class MeshHudScreen extends StatelessWidget {
                     ),
                     child: Text(
                       '${peer.signalStrengthDbm} dBm',
-                      style: const TextStyle(color: AppTheme.accentTeal, fontSize: 11, fontFamily: 'monospace'),
+                      style: TextStyle(
+                        color: peer.isPhysical ? AppTheme.severityLow : AppTheme.accentTeal,
+                        fontSize: 11,
+                        fontFamily: 'monospace',
+                      ),
                     ),
                   ),
                 ),
