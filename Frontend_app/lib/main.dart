@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/location/location_service.dart';
+import 'core/notifications/notification_service.dart';
 import 'core/storage/local_store.dart';
 import 'core/mesh/mesh_engine.dart';
 import 'core/sync/sync_manager.dart';
@@ -9,6 +10,7 @@ import 'modules/home/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.initialize();
 
   final localStore = LocalStore();
   await localStore.init();

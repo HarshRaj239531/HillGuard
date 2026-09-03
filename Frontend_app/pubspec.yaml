@@ -46,6 +46,7 @@ dependencies:
   sqflite_common_ffi: ^2.4.0+3
   geolocator: ^14.0.3
   image_picker: ^1.2.3
+  flutter_local_notifications: ^18.0.1
 
 dev_dependencies:
   flutter_test:

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/models/hazard_types.dart';
@@ -39,6 +40,10 @@ class _HomeScreenState extends State<HomeScreen> {
       final meshEngine = context.read<MeshEngine>();
       _alertSub = meshEngine.incomingAlertStream.listen((alertText) {
         if (!mounted) return;
+        try {
+          HapticFeedback.vibrate();
+          HapticFeedback.heavyImpact();
+        } catch (_) {}
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: AppTheme.severityCritical,

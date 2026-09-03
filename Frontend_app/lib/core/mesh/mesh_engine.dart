@@ -2,11 +2,13 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../models/hazard_types.dart';
 import '../models/landslide_report.dart';
 import '../models/road_report.dart';
 import '../models/mesh_packet.dart';
+import '../notifications/notification_service.dart';
 import '../storage/local_store.dart';
 
 import 'p2p_socket_service.dart';
@@ -154,7 +156,7 @@ class MeshEngine extends ChangeNotifier {
 
     // Physical Socket Broadcast to all connected phones
     if (_isMeshBroadcasting) {
-      _p2pSocketService.broadcastPacket(packet);
+      await _p2pSocketService.broadcastPacket(packet);
     }
 
     _logEvent(
@@ -183,7 +185,7 @@ class MeshEngine extends ChangeNotifier {
 
     // Physical Socket Broadcast to all connected phones
     if (_isMeshBroadcasting) {
-      _p2pSocketService.broadcastPacket(packet);
+      await _p2pSocketService.broadcastPacket(packet);
     }
 
     _logEvent(
@@ -222,7 +224,7 @@ class MeshEngine extends ChangeNotifier {
     await localStore.enqueueMeshPacket(packet);
 
     if (_isMeshBroadcasting) {
-      _p2pSocketService.broadcastPacket(packet);
+      await _p2pSocketService.broadcastPacket(packet);
     }
 
     _logEvent(
@@ -265,6 +267,11 @@ class MeshEngine extends ChangeNotifier {
         report.lastRelayPeer = fromPeerId;
         await localStore.saveLandslideReport(report);
         _alertStreamController.add('⚠️ LANDSLIDE ALERT: ${report.locationDescription} [${report.severity.displayName}] via Mesh!');
+        NotificationService.showEmergencyNotification(
+          title: '⚠️ LANDSLIDE HAZARD ALERT',
+          body: '${report.locationDescription} • ${report.severity.displayName} (via Mesh)',
+          id: 101,
+        );
       } else if (incomingPacket.type == MeshPacketType.roadReport) {
         final reportMap = json.decode(incomingPacket.payload) as Map<String, dynamic>;
         final report = RoadReport.fromMap(reportMap);
@@ -273,12 +280,28 @@ class MeshEngine extends ChangeNotifier {
         report.lastRelayPeer = fromPeerId;
         await localStore.saveRoadReport(report);
         _alertStreamController.add('🚨 ROAD ALERT: ${report.roadIdentifier} is ${report.status.label} (${report.sectionName}) via Mesh!');
+        NotificationService.showEmergencyNotification(
+          title: '🚨 ROAD OBSTACLE ALERT',
+          body: '${report.roadIdentifier} is ${report.status.label} at ${report.sectionName}',
+          id: 102,
+        );
       } else if (incomingPacket.type == MeshPacketType.emergencyAlert) {
         final alertMap = json.decode(incomingPacket.payload) as Map<String, dynamic>;
         final authority = alertMap['authority'] ?? 'GOVT DISASTER AUTHORITY';
         final warning = alertMap['warning'] ?? 'High risk warning';
         _alertStreamController.add('🚨 OFFICIAL RED ALERT ($authority): $warning');
+        NotificationService.showEmergencyNotification(
+          title: '🚨 OFFICIAL RED ALERT: $authority',
+          body: warning,
+          id: 103,
+        );
       }
+
+      // Physical vibration buzz on phone
+      try {
+        HapticFeedback.vibrate();
+        HapticFeedback.heavyImpact();
+      } catch (_) {}
 
       // Re-forward to other peers if TTL not reached
       if (!incomingPacket.isExpired && _isMeshBroadcasting) {
