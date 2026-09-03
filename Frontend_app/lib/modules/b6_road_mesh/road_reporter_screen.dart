@@ -250,7 +250,7 @@ class _RoadReporterScreenState extends State<RoadReporterScreen> {
                           selected: isSelected,
                           label: Text(obs.label),
                           labelStyle: TextStyle(
-                            color: isSelected ? Colors.black : AppTheme.textPrimary,
+                            color: isSelected ? Colors.white : AppTheme.textPrimary,
                             fontSize: 12,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                           ),
@@ -316,7 +316,7 @@ class _RoadReporterScreenState extends State<RoadReporterScreen> {
               label: const Text('BROADCAST ROAD STATUS VIA MESH'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _status.color,
-                foregroundColor: Colors.black,
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
             ),

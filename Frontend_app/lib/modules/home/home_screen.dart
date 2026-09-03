@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -10,6 +11,7 @@ import '../../core/sync/sync_manager.dart';
 import '../../core/theme/app_theme.dart';
 import '../b1_landslide/landslide_reporter_screen.dart';
 import '../b6_road_mesh/road_reporter_screen.dart';
+import '../b6_road_mesh/route_status_board.dart';
 import '../map/disaster_map_screen.dart';
 import '../mesh_hud/mesh_hud_screen.dart';
 
@@ -22,6 +24,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+  StreamSubscription<String>? _alertSub;
 
   final List<Widget> _pages = [
     const _DashboardTab(),
@@ -30,38 +33,89 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final meshEngine = context.read<MeshEngine>();
+      _alertSub = meshEngine.incomingAlertStream.listen((alertText) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppTheme.severityCritical,
+            duration: const Duration(seconds: 6),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            margin: const EdgeInsets.all(16),
+            content: Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 26),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    alertText,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _alertSub?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_currentIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        backgroundColor: AppTheme.surface,
-        indicatorColor: AppTheme.primary.withAlpha(50),
-        onDestinationSelected: (index) => setState(() => _currentIndex = index),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard, color: AppTheme.primary),
-            label: 'Field Feed',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.map_outlined),
-            selectedIcon: Icon(Icons.map, color: AppTheme.primary),
-            label: 'Disaster Map',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.hub_outlined),
-            selectedIcon: Icon(Icons.hub, color: AppTheme.meshActive),
-            label: 'Mesh HUD',
-          ),
-        ],
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: AppTheme.surface,
+          border: Border(top: BorderSide(color: AppTheme.borderSubtle, width: 1)),
+        ),
+        child: NavigationBar(
+          selectedIndex: _currentIndex,
+          backgroundColor: AppTheme.surface,
+          indicatorColor: AppTheme.primary.withAlpha(25),
+          elevation: 0,
+          onDestinationSelected: (index) => setState(() => _currentIndex = index),
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.dashboard_outlined, color: AppTheme.textSecondary),
+              selectedIcon: Icon(Icons.dashboard, color: AppTheme.primary),
+              label: 'Field Feed',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.map_outlined, color: AppTheme.textSecondary),
+              selectedIcon: Icon(Icons.map, color: AppTheme.primary),
+              label: 'Disaster Map',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.hub_outlined, color: AppTheme.textSecondary),
+              selectedIcon: Icon(Icons.hub, color: AppTheme.meshActive),
+              label: 'Mesh HUD',
+            ),
+          ],
+        ),
       ),
       floatingActionButton: _currentIndex == 0
           ? FloatingActionButton.extended(
               backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.black,
-              icon: const Icon(Icons.add_alert),
-              label: const Text('New Field Report', style: TextStyle(fontWeight: FontWeight.bold)),
+              foregroundColor: Colors.white,
+              elevation: 3,
+              icon: const Icon(Icons.add_alert, size: 20),
+              label: const Text('New Field Report', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
               onPressed: () => _showReportTypeDialog(context),
             )
           : null,
@@ -71,9 +125,9 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showReportTypeDialog(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppTheme.surfaceElevated,
+      backgroundColor: AppTheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
         return Padding(
@@ -82,30 +136,44 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.borderSubtle,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
               Text(
                 'SELECT REPORT MODULE',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: AppTheme.primary,
-                      fontSize: 12,
+                      fontSize: 11,
                       letterSpacing: 1.1,
+                      fontWeight: FontWeight.bold,
                     ),
               ),
               const SizedBox(height: 16),
               ListTile(
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   side: const BorderSide(color: AppTheme.borderSubtle),
                 ),
+                tileColor: AppTheme.surfaceElevated,
                 leading: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppTheme.severityHigh.withAlpha(40),
-                    borderRadius: BorderRadius.circular(8),
+                    color: AppTheme.severityHigh.withAlpha(25),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(Icons.landslide, color: AppTheme.severityHigh),
                 ),
-                title: const Text('B1: Landslide Hazard Reporter', style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text('Slope tension cracks, mud seepage, AI severity analysis', style: TextStyle(fontSize: 12)),
+                title: const Text('B1: Landslide Hazard Reporter', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                subtitle: const Text('Tension cracks, slope angles, AI geotechnical triage', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                trailing: const Icon(Icons.chevron_right, color: AppTheme.textMuted),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -117,19 +185,21 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 12),
               ListTile(
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   side: const BorderSide(color: AppTheme.borderSubtle),
                 ),
+                tileColor: AppTheme.surfaceElevated,
                 leading: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppTheme.accentTeal.withAlpha(40),
-                    borderRadius: BorderRadius.circular(8),
+                    color: AppTheme.accentTeal.withAlpha(25),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(Icons.add_road, color: AppTheme.accentTeal),
                 ),
-                title: const Text('B6: Road Status Mesh Network', style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text('NH/SH blockages, rockfall, passability for vehicles', style: TextStyle(fontSize: 12)),
+                title: const Text('B6: Road Status Mesh Network', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                subtitle: const Text('NH/SH blockages, rockfall, vehicle passage status', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                trailing: const Icon(Icons.chevron_right, color: AppTheme.textMuted),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -160,25 +230,37 @@ class _DashboardTab extends StatelessWidget {
     final roads = localStore.roadReports;
 
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(6),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.primary.withAlpha(40),
-                borderRadius: BorderRadius.circular(8),
+                gradient: const LinearGradient(
+                  colors: [AppTheme.primary, AppTheme.accentTeal],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primary.withAlpha(60),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              child: const Icon(Icons.shield_outlined, color: AppTheme.primary, size: 22),
+              child: const Icon(Icons.shield_outlined, color: Colors.white, size: 20),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('HillGuard', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                const Text('HillGuard', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.textPrimary)),
                 Text(
-                  'Unified Disaster & Road Mesh',
-                  style: TextStyle(fontSize: 10, color: AppTheme.primary.withAlpha(200)),
+                  'Disaster & Road Intelligence Mesh',
+                  style: TextStyle(fontSize: 10, color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
@@ -193,39 +275,58 @@ class _DashboardTab extends StatelessWidget {
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary),
                   )
-                : const Icon(Icons.sync, color: AppTheme.primary),
+                : Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceElevated,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppTheme.borderSubtle),
+                    ),
+                    child: const Icon(Icons.sync, color: AppTheme.primary, size: 18),
+                  ),
             onPressed: () => syncManager.syncNow(),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
         ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Emergency Mesh Status Bar
+          // Emergency Mesh Status Card (Clean Light Style)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: syncManager.isOnline ? AppTheme.surfaceElevated : AppTheme.severityHigh.withAlpha(25),
-              borderRadius: BorderRadius.circular(14),
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: syncManager.isOnline ? AppTheme.borderSubtle : AppTheme.severityHigh,
+                color: syncManager.isOnline ? AppTheme.severityLow.withAlpha(120) : AppTheme.severityHigh.withAlpha(120),
+                width: 1.2,
               ),
+              boxShadow: const [
+                BoxShadow(color: Color(0x08000000), blurRadius: 10, offset: Offset(0, 2)),
+              ],
             ),
             child: Row(
               children: [
-                Icon(
-                  syncManager.isOnline ? Icons.cloud_done : Icons.cloud_off,
-                  color: syncManager.isOnline ? AppTheme.severityLow : AppTheme.severityHigh,
-                  size: 20,
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: (syncManager.isOnline ? AppTheme.severityLow : AppTheme.severityHigh).withAlpha(25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    syncManager.isOnline ? Icons.cloud_done : Icons.cloud_off,
+                    color: syncManager.isOnline ? AppTheme.severityLow : AppTheme.severityHigh,
+                    size: 20,
+                  ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        syncManager.isOnline ? 'CLOUD SYNC ONLINE' : 'OFFLINE (STORE & MESH FORWARD ACTIVE)',
+                        syncManager.isOnline ? 'BASE STATION CONNECTED' : 'OFFLINE MODE (STORE & FORWARD)',
                         style: TextStyle(
                           color: syncManager.isOnline ? AppTheme.severityLow : AppTheme.severityHigh,
                           fontWeight: FontWeight.bold,
@@ -233,10 +334,10 @@ class _DashboardTab extends StatelessWidget {
                           letterSpacing: 0.5,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 3),
                       Text(
-                        '${meshEngine.activePeers.length} BLE peers connected • ${localStore.pendingSyncCount} reports in sync queue',
-                        style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                        '${meshEngine.activePeers.length} mesh peers (${meshEngine.physicalPeerCount} physical) • ${localStore.pendingSyncCount} pending upload',
+                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                       ),
                     ],
                   ),
@@ -250,6 +351,7 @@ class _DashboardTab extends StatelessWidget {
           // Two Quick Action Hero Cards (B1 + B6)
           Row(
             children: [
+              // B1 Landslide Card
               Expanded(
                 child: GestureDetector(
                   onTap: () {
@@ -261,18 +363,28 @@ class _DashboardTab extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppTheme.severityHigh.withAlpha(40), AppTheme.surfaceElevated],
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFFF1F2), Color(0xFFFFFFFF)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.severityHigh.withAlpha(120)),
+                      border: Border.all(color: AppTheme.severityHigh.withAlpha(80), width: 1.2),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0x06000000), blurRadius: 10, offset: Offset(0, 3)),
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.landslide, color: AppTheme.severityHigh, size: 28),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.severityHigh.withAlpha(30),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.landslide, color: AppTheme.severityHigh, size: 24),
+                        ),
                         const SizedBox(height: 12),
                         const Text(
                           'B1 Landslide',
@@ -280,8 +392,8 @@ class _DashboardTab extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         const Text(
-                          'Crack / slope vision scan & safety triage',
-                          style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                          'Crack scan & safety AI evaluation',
+                          style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, height: 1.3),
                         ),
                       ],
                     ),
@@ -289,6 +401,7 @@ class _DashboardTab extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
+              // B6 Road Mesh Card
               Expanded(
                 child: GestureDetector(
                   onTap: () {
@@ -300,18 +413,28 @@ class _DashboardTab extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppTheme.accentTeal.withAlpha(40), AppTheme.surfaceElevated],
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFF0FDF4), Color(0xFFFFFFFF)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.accentTeal.withAlpha(120)),
+                      border: Border.all(color: AppTheme.accentTeal.withAlpha(80), width: 1.2),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0x06000000), blurRadius: 10, offset: Offset(0, 3)),
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.add_road, color: AppTheme.accentTeal, size: 28),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.accentTeal.withAlpha(30),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.add_road, color: AppTheme.accentTeal, size: 24),
+                        ),
                         const SizedBox(height: 12),
                         const Text(
                           'B6 Road Mesh',
@@ -319,12 +442,52 @@ class _DashboardTab extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         const Text(
-                          'Report blockage & relay over phone mesh',
-                          style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                          'Report obstacle & relay over phone mesh',
+                          style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, height: 1.3),
                         ),
                       ],
                     ),
                   ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // Secondary Quick Actions (Route Board + Relay Down Official Warning)
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.primary,
+                    side: const BorderSide(color: AppTheme.primary, width: 1.2),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.alt_route, size: 18),
+                  label: const Text('Route Board (B6)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const RouteStatusBoard()),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.severityCritical,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.campaign, size: 18),
+                  label: const Text('Relay Alert (B1)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  onPressed: () => _showOfficialAlertBroadcastDialog(context),
                 ),
               ),
             ],
@@ -337,16 +500,24 @@ class _DashboardTab extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'UNIFIED FIELD INTELLIGENCE FEED',
+                'LIVE COMMUNITY HAZARD FEED',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontSize: 12,
+                      fontSize: 11,
                       letterSpacing: 1.1,
                       color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.bold,
                     ),
               ),
-              Text(
-                '${landslides.length + roads.length} Reports',
-                style: const TextStyle(fontSize: 11, color: AppTheme.primary, fontWeight: FontWeight.bold),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withAlpha(20),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${landslides.length + roads.length} Reports',
+                  style: const TextStyle(fontSize: 11, color: AppTheme.primary, fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
@@ -375,26 +546,27 @@ class _DashboardTab extends StatelessWidget {
           children: [
             Row(
               children: [
+                // Severity Pill with soft light background
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: report.severity.color,
+                    color: report.severity.color.withAlpha(25),
                     borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: report.severity.color.withAlpha(80)),
                   ),
                   child: Text(
                     report.severity.displayName,
-                    style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 10),
+                    style: TextStyle(color: report.severity.color, fontWeight: FontWeight.bold, fontSize: 10),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppTheme.surfaceElevated,
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: AppTheme.borderSubtle),
                   ),
-                  child: const Text('B1 HAZARD', style: TextStyle(color: AppTheme.textMuted, fontSize: 10, fontWeight: FontWeight.bold)),
+                  child: const Text('B1 LANDSLIDE', style: TextStyle(color: AppTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
                 ),
                 const Spacer(),
                 _buildSyncBadge(report.syncStatus, report.relayHops),
@@ -403,22 +575,24 @@ class _DashboardTab extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               report.locationDescription,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimary),
             ),
             const SizedBox(height: 4),
             Text(
               report.plainLanguageExplanation,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.3),
             ),
             const SizedBox(height: 10),
+            const Divider(height: 1, color: AppTheme.borderSubtle),
+            const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '${report.estimatedSlopeAngle.toStringAsFixed(0)}° Slope • ${report.detectedFeatures.length} Features',
-                  style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                  '${report.estimatedSlopeAngle.toStringAsFixed(0)}° Slope • ${report.detectedFeatures.length} Indicators',
+                  style: const TextStyle(fontSize: 11, color: AppTheme.textMuted, fontWeight: FontWeight.w500),
                 ),
                 Text(
                   DateFormat('MMM d, HH:mm').format(report.timestamp),
@@ -442,15 +616,17 @@ class _DashboardTab extends StatelessWidget {
           children: [
             Row(
               children: [
+                // Road Status Pill with soft tint
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: road.status.color,
+                    color: road.status.color.withAlpha(25),
                     borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: road.status.color.withAlpha(80)),
                   ),
                   child: Text(
                     road.status.label,
-                    style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 10),
+                    style: TextStyle(color: road.status.color, fontWeight: FontWeight.bold, fontSize: 10),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -472,15 +648,17 @@ class _DashboardTab extends StatelessWidget {
               road.description,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.3),
             ),
+            const SizedBox(height: 10),
+            const Divider(height: 1, color: AppTheme.borderSubtle),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   road.obstacleType.label,
-                  style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                  style: const TextStyle(fontSize: 11, color: AppTheme.textMuted, fontWeight: FontWeight.w500),
                 ),
                 Text(
                   DateFormat('MMM d, HH:mm').format(road.timestamp),
@@ -499,18 +677,18 @@ class _DashboardTab extends StatelessWidget {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: const [
-          Icon(Icons.cloud_done, color: AppTheme.severityLow, size: 14),
+          Icon(Icons.check_circle, color: AppTheme.severityLow, size: 14),
           SizedBox(width: 4),
-          Text('Cloud Synced', style: TextStyle(color: AppTheme.severityLow, fontSize: 10)),
+          Text('Cloud Synced', style: TextStyle(color: AppTheme.severityLow, fontSize: 10, fontWeight: FontWeight.bold)),
         ],
       );
     } else if (status == SyncStatus.relayedViaMesh) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
         decoration: BoxDecoration(
-          color: AppTheme.meshActive.withAlpha(40),
+          color: AppTheme.meshActive.withAlpha(25),
           borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: AppTheme.meshActive),
+          border: Border.all(color: AppTheme.meshActive.withAlpha(80)),
         ),
         child: Text(
           'RELAYED ($hops HOPS)',
@@ -519,10 +697,11 @@ class _DashboardTab extends StatelessWidget {
       );
     } else {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
         decoration: BoxDecoration(
-          color: AppTheme.severityMedium.withAlpha(40),
+          color: AppTheme.severityMedium.withAlpha(25),
           borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: AppTheme.severityMedium.withAlpha(80)),
         ),
         child: const Text(
           'PENDING SYNC',
@@ -530,5 +709,71 @@ class _DashboardTab extends StatelessWidget {
         ),
       );
     }
+  }
+
+  void _showOfficialAlertBroadcastDialog(BuildContext context) {
+    final meshEngine = context.read<MeshEngine>();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: const [
+            Icon(Icons.campaign, color: AppTheme.severityCritical),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Relay Down: Official Alert',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            Text(
+              'Simulate receiving an official meteorological warning on a connected device and rebroadcasting it peer-to-peer down to offline phones with no signal:',
+              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+            ),
+            SizedBox(height: 12),
+            Text(
+              '⚠️ IMD HIGH-RISK RED ALERT:\n"Over 300mm torrential rain in 12h. Severe landslide threat across Darjeeling - Kurseong - Tindharia mountain belt. Immediate valley evacuation ordered!"',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.severityCritical, height: 1.4),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.severityCritical,
+              foregroundColor: Colors.white,
+            ),
+            icon: const Icon(Icons.send_to_mobile, size: 18),
+            label: const Text('REBROADCAST TO MESH'),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await meshEngine.broadcastOfficialEmergencyAlert(
+                authorityTitle: 'IMD / DISTRICT DISASTER AUTHORITY',
+                warningText: 'Over 300mm torrential rain in 12h. High landslide hazard. Immediate slope evacuation ordered!',
+                targetZone: 'Kurseong - Tindharia Basin',
+              );
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    backgroundColor: AppTheme.severityCritical,
+                    content: Text('Official High-Risk Red Alert dispatched to offline mesh peers!'),
+                  ),
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
   }
 }

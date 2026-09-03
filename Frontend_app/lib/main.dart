@@ -38,7 +38,7 @@ class HillGuardApp extends StatelessWidget {
     return MaterialApp(
       title: 'HillGuard - Disaster & Road Mesh',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme,
       home: const HomeScreen(),
     );
   }

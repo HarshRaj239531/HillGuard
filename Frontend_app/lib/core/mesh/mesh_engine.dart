@@ -59,12 +59,19 @@ class MeshEngine extends ChangeNotifier {
   final List<MeshPeer> _simulatedPeers = [];
   final List<MeshPeer> _physicalPeers = [];
   final List<MeshRelayEvent> _relayLogs = [];
+  final _alertStreamController = StreamController<String>.broadcast();
   bool _isMeshBroadcasting = true;
 
   List<MeshPeer> get activePeers => [..._physicalPeers, ..._simulatedPeers];
   List<MeshRelayEvent> get relayLogs => List.unmodifiable(_relayLogs);
+  Stream<String> get incomingAlertStream => _alertStreamController.stream;
   bool get isMeshBroadcasting => _isMeshBroadcasting;
   int get physicalPeerCount => _physicalPeers.length;
+
+  void toggleMeshBroadcasting() {
+    _isMeshBroadcasting = !_isMeshBroadcasting;
+    notifyListeners();
+  }
 
   MeshEngine({required this.localStore}) {
     _initSimulatedPeers();
@@ -188,6 +195,46 @@ class MeshEngine extends ChangeNotifier {
     );
   }
 
+  // Relay Down: Broadcast an official government/met warning across the offline mesh
+  Future<void> broadcastOfficialEmergencyAlert({
+    required String authorityTitle,
+    required String warningText,
+    required String targetZone,
+  }) async {
+    final payloadMap = {
+      'authority': authorityTitle,
+      'warning': warningText,
+      'targetZone': targetZone,
+      'issuedAt': DateTime.now().toIso8601String(),
+    };
+
+    final packet = MeshPacket(
+      packetId: const Uuid().v4(),
+      type: MeshPacketType.emergencyAlert,
+      payload: json.encode(payloadMap),
+      originalSenderId: deviceId,
+      createdAt: DateTime.now(),
+      maxTtl: 7, // Official alerts travel up to 7 hops across valleys
+      currentHop: 0,
+      priority: 3,
+    );
+
+    await localStore.enqueueMeshPacket(packet);
+
+    if (_isMeshBroadcasting) {
+      _p2pSocketService.broadcastPacket(packet);
+    }
+
+    _logEvent(
+      title: 'OFFICIAL RED ALERT DISPATCHED TO MESH',
+      description: '$authorityTitle: $warningText [$targetZone]',
+      packetId: packet.packetId,
+      hopCount: 0,
+      isIncoming: false,
+    );
+    notifyListeners();
+  }
+
   // Ingest an incoming mesh packet from a peer
   Future<bool> ingestIncomingPacket(MeshPacket incomingPacket, String fromPeerId) async {
     // Deduplication check
@@ -217,6 +264,7 @@ class MeshEngine extends ChangeNotifier {
         report.relayHops = incomingPacket.currentHop;
         report.lastRelayPeer = fromPeerId;
         await localStore.saveLandslideReport(report);
+        _alertStreamController.add('⚠️ LANDSLIDE ALERT: ${report.locationDescription} [${report.severity.displayName}] via Mesh!');
       } else if (incomingPacket.type == MeshPacketType.roadReport) {
         final reportMap = json.decode(incomingPacket.payload) as Map<String, dynamic>;
         final report = RoadReport.fromMap(reportMap);
@@ -224,6 +272,12 @@ class MeshEngine extends ChangeNotifier {
         report.relayHops = incomingPacket.currentHop;
         report.lastRelayPeer = fromPeerId;
         await localStore.saveRoadReport(report);
+        _alertStreamController.add('🚨 ROAD ALERT: ${report.roadIdentifier} is ${report.status.label} (${report.sectionName}) via Mesh!');
+      } else if (incomingPacket.type == MeshPacketType.emergencyAlert) {
+        final alertMap = json.decode(incomingPacket.payload) as Map<String, dynamic>;
+        final authority = alertMap['authority'] ?? 'GOVT DISASTER AUTHORITY';
+        final warning = alertMap['warning'] ?? 'High risk warning';
+        _alertStreamController.add('🚨 OFFICIAL RED ALERT ($authority): $warning');
       }
 
       // Re-forward to other peers if TTL not reached

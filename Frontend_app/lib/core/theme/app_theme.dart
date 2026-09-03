@@ -2,47 +2,55 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Brand & Safety Palette
-  static const Color background = Color(0xFF080C14);
-  static const Color surface = Color(0xFF111827);
-  static const Color surfaceElevated = Color(0xFF1F2937);
-  static const Color surfaceGlass = Color(0xDD161F30);
+  // ==========================================
+  // Light Palette (Modern Crisp Alpine HUD)
+  // ==========================================
+  static const Color background = Color(0xFFF8FAFC); // Clean Slate 50
+  static const Color surface = Color(0xFFFFFFFF); // Pure White
+  static const Color surfaceElevated = Color(0xFFF1F5F9); // Slate 100
+  static const Color surfaceGlass = Color(0xF2FFFFFF); // Frosted White
 
-  static const Color primary = Color(0xFF00E5FF); // Electric Cyan
-  static const Color primaryDark = Color(0xFF0091EA);
-  static const Color accentTeal = Color(0xFF00BFA5); // Hill Safety Teal
+  // Primary & Accent Brand Tokens
+  static const Color primary = Color(0xFF0284C7); // Deep Sky Cobalt
+  static const Color primaryDark = Color(0xFF0369A1);
+  static const Color accentTeal = Color(0xFF0D9488); // Mountain Forest Teal
 
-  // Hazard Severity Colors
-  static const Color severityLow = Color(0xFF10B981); // Emerald
-  static const Color severityMedium = Color(0xFFF59E0B); // Amber
-  static const Color severityHigh = Color(0xFFF97316); // Orange-Red
-  static const Color severityCritical = Color(0xFFEF4444); // Neon Crimson
+  // Hazard Severity Colors (Calibrated for High Daylight Legibility)
+  static const Color severityLow = Color(0xFF059669); // Emerald
+  static const Color severityMedium = Color(0xFFD97706); // Amber
+  static const Color severityHigh = Color(0xFFEA580C); // Orange-Red
+  static const Color severityCritical = Color(0xFFDC2626); // Crimson Danger
 
   // Mesh & Offline Indicators
-  static const Color meshActive = Color(0xFF8B5CF6); // Purple
-  static const Color meshRelay = Color(0xFF3B82F6); // Blue
-  static const Color offlineWarning = Color(0xFFEAB308);
+  static const Color meshActive = Color(0xFF7C3AED); // Royal Violet
+  static const Color meshRelay = Color(0xFF2563EB); // Vivid Blue
+  static const Color offlineWarning = Color(0xFFB45309);
 
-  static const Color textPrimary = Color(0xFFF9FAFB);
-  static const Color textSecondary = Color(0xFF9CA3AF);
-  static const Color textMuted = Color(0xFF6B7280);
+  // Typography Tokens
+  static const Color textPrimary = Color(0xFF0F172A); // Slate 900
+  static const Color textSecondary = Color(0xFF475569); // Slate 600
+  static const Color textMuted = Color(0xFF94A3B8); // Slate 400
 
-  static const Color borderSubtle = Color(0xFF374151);
-  static const Color borderFocus = Color(0xFF00E5FF);
+  // Border Tokens
+  static const Color borderSubtle = Color(0xFFE2E8F0); // Slate 200
+  static const Color borderFocus = Color(0xFF0284C7);
 
-  static ThemeData get darkTheme {
-    final baseTextTheme = GoogleFonts.interTextTheme(ThemeData.dark().textTheme);
+  // ==========================================
+  // Premium Light Theme
+  // ==========================================
+  static ThemeData get lightTheme {
+    final baseTextTheme = GoogleFonts.interTextTheme(ThemeData.light().textTheme);
 
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       scaffoldBackgroundColor: background,
-      colorScheme: const ColorScheme.dark(
+      colorScheme: const ColorScheme.light(
         primary: primary,
         secondary: accentTeal,
         surface: surface,
         error: severityCritical,
-        onPrimary: Colors.black,
+        onPrimary: Colors.white,
         onSurface: textPrimary,
       ),
       textTheme: baseTextTheme.copyWith(
@@ -50,12 +58,13 @@ class AppTheme {
           fontSize: 28,
           fontWeight: FontWeight.bold,
           color: textPrimary,
-          letterSpacing: -0.5,
+          letterSpacing: -0.6,
         ),
         headlineMedium: GoogleFonts.outfit(
           fontSize: 22,
           fontWeight: FontWeight.w700,
           color: textPrimary,
+          letterSpacing: -0.3,
         ),
         titleLarge: GoogleFonts.outfit(
           fontSize: 18,
@@ -76,20 +85,26 @@ class AppTheme {
           color: textSecondary,
         ),
       ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.transparent,
+      appBarTheme: AppBarTheme(
+        backgroundColor: surface,
         elevation: 0,
+        scrolledUnderElevation: 1,
         centerTitle: false,
-        iconTheme: IconThemeData(color: textPrimary),
+        iconTheme: const IconThemeData(color: textPrimary),
+        titleTextStyle: GoogleFonts.outfit(
+          fontSize: 19,
+          fontWeight: FontWeight.bold,
+          color: textPrimary,
+        ),
       ),
       cardTheme: CardThemeData(
         color: surface,
-        elevation: 4,
-        shadowColor: Colors.black.withAlpha(128),
+        elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: borderSubtle, width: 1),
+          side: const BorderSide(color: borderSubtle, width: 1.2),
         ),
+        shadowColor: const Color(0x0A000000),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -105,15 +120,16 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: borderFocus, width: 1.5),
+          borderSide: const BorderSide(color: borderFocus, width: 1.8),
         ),
         hintStyle: const TextStyle(color: textMuted, fontSize: 13),
+        labelStyle: const TextStyle(color: textSecondary, fontSize: 13),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primary,
-          foregroundColor: Colors.black,
-          elevation: 3,
+          foregroundColor: Colors.white,
+          elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -124,6 +140,20 @@ class AppTheme {
           ),
         ),
       ),
+      chipTheme: ChipThemeData(
+        backgroundColor: surfaceElevated,
+        selectedColor: primary.withAlpha(30),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: const BorderSide(color: borderSubtle),
+        ),
+        labelStyle: const TextStyle(fontSize: 12, color: textPrimary),
+      ),
     );
+  }
+
+  // Soft Tint Helper for Emergency Badges in Light Mode
+  static Color severityBackground(Color severityColor) {
+    return severityColor.withAlpha(25);
   }
 }

@@ -356,13 +356,13 @@ class _LandslideReporterScreenState extends State<LandslideReporterScreen> {
                           selected: isSelected,
                           label: Text(feature.label),
                           labelStyle: TextStyle(
-                            color: isSelected ? Colors.black : AppTheme.textPrimary,
+                            color: isSelected ? Colors.white : AppTheme.textPrimary,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                             fontSize: 12,
                           ),
                           selectedColor: AppTheme.primary,
                           backgroundColor: AppTheme.surfaceElevated,
-                          checkmarkColor: Colors.black,
+                          checkmarkColor: Colors.white,
                           side: BorderSide(
                             color: isSelected ? AppTheme.primary : AppTheme.borderSubtle,
                           ),
@@ -425,7 +425,7 @@ class _LandslideReporterScreenState extends State<LandslideReporterScreen> {
                     // Recent Rainfall Switch
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Recent / Ongoing Heavy Rainfall', style: TextStyle(fontSize: 13)),
+                      title: const Text('Recent / Ongoing Heavy Rainfall', style: TextStyle(fontSize: 13, color: AppTheme.textPrimary)),
                       subtitle: const Text('Increases ground pore-water saturation', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
                       value: _hasRain,
                       activeThumbColor: AppTheme.primary,
@@ -441,9 +441,9 @@ class _LandslideReporterScreenState extends State<LandslideReporterScreen> {
             // Real-Time Edge AI Severity Assessment Card
             Container(
               decoration: BoxDecoration(
-                color: evaluation.severity.color.withAlpha(25),
+                color: evaluation.severity.color.withAlpha(20),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: evaluation.severity.color, width: 1.5),
+                border: Border.all(color: evaluation.severity.color.withAlpha(120), width: 1.5),
               ),
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -451,27 +451,30 @@ class _LandslideReporterScreenState extends State<LandslideReporterScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.warning_rounded, color: evaluation.severity.color, size: 24),
+                      Icon(Icons.warning_rounded, color: evaluation.severity.color, size: 22),
                       const SizedBox(width: 8),
-                      Text(
-                        evaluation.severity.displayName,
-                        style: TextStyle(
-                          color: evaluation.severity.color,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          letterSpacing: 0.8,
+                      Expanded(
+                        child: Text(
+                          evaluation.severity.displayName,
+                          style: TextStyle(
+                            color: evaluation.severity.color,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            letterSpacing: 0.5,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: evaluation.severity.color,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          'RISK SCORE: ${evaluation.riskScore}/100',
-                          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
+                          'SCORE: ${evaluation.riskScore}/100',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
                         ),
                       ),
                     ],

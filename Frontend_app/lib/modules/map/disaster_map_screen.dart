@@ -366,7 +366,7 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> with SingleTicker
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.accentTeal,
-                      foregroundColor: Colors.black,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                     icon: const Icon(Icons.add_road, size: 20),
@@ -395,7 +395,7 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> with SingleTicker
         selected: isSelected,
         label: Text(label),
         labelStyle: TextStyle(
-          color: isSelected ? Colors.black : AppTheme.textPrimary,
+          color: isSelected ? Colors.white : AppTheme.textPrimary,
           fontSize: 11,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
@@ -411,36 +411,48 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> with SingleTicker
   void _showLandslideDetail(BuildContext context, LandslideReport report) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppTheme.surfaceElevated,
+      backgroundColor: AppTheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
         return Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
           child: ListView(
             shrinkWrap: true,
             children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.borderSubtle,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: report.severity.color,
+                      color: report.severity.color.withAlpha(25),
                       borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: report.severity.color.withAlpha(80)),
                     ),
                     child: Text(
                       report.severity.displayName,
-                      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
+                      style: TextStyle(color: report.severity.color, fontWeight: FontWeight.bold, fontSize: 11),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                     decoration: BoxDecoration(
-                      color: AppTheme.meshActive.withAlpha(40),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: AppTheme.meshActive),
+                      color: AppTheme.meshActive.withAlpha(25),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.meshActive.withAlpha(80)),
                     ),
                     child: Text(
                       'MESH HOPS: ${report.relayHops}',
@@ -481,27 +493,39 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> with SingleTicker
   void _showRoadDetail(BuildContext context, RoadReport road) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppTheme.surfaceElevated,
+      backgroundColor: AppTheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
         return Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
           child: ListView(
             shrinkWrap: true,
             children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.borderSubtle,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: road.status.color,
+                      color: road.status.color.withAlpha(25),
                       borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: road.status.color.withAlpha(80)),
                     ),
                     child: Text(
                       road.status.label,
-                      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
+                      style: TextStyle(color: road.status.color, fontWeight: FontWeight.bold, fontSize: 11),
                     ),
                   ),
                   const SizedBox(width: 8),
