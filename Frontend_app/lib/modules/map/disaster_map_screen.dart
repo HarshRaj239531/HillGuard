@@ -7,6 +7,7 @@ import '../../core/location/location_service.dart';
 import '../../core/models/hazard_types.dart';
 import '../../core/models/landslide_report.dart';
 import '../../core/models/road_report.dart';
+import '../../core/models/safe_haven.dart';
 import '../../core/storage/local_store.dart';
 import '../../core/theme/app_theme.dart';
 import '../b1_landslide/landslide_reporter_screen.dart';
@@ -414,6 +415,64 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> with SingleTicker
           ),
         );
       }
+    }
+
+    // 4. Safe Haven & PHC Markers (Hospitals, Relief Camps, Evacuation Shelters)
+    for (final haven in SafeHaven.regionalSafeHavens) {
+      markers.add(
+        Marker(
+          point: haven.latLng,
+          width: 76,
+          height: 72,
+          child: GestureDetector(
+            onTap: () => _showSafeHavenSheet(context, haven, userPos),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(color: haven.type.color, width: 1.2),
+                    boxShadow: const [
+                      BoxShadow(color: Color(0x18000000), blurRadius: 4, offset: Offset(0, 2)),
+                    ],
+                  ),
+                  child: Text(
+                    haven.name.split(' ').first,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: haven.type.color,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 8.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: haven.type.color,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2.2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: haven.type.color.withAlpha(120),
+                        blurRadius: 7,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: Icon(haven.type.icon, color: Colors.white, size: 18),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     return Scaffold(
@@ -935,6 +994,106 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> with SingleTicker
                 const SizedBox(height: 10),
                 Text('Est. Clearance: ${road.estimatedClearanceTime}', style: const TextStyle(color: AppTheme.severityMedium, fontSize: 12)),
               ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showSafeHavenSheet(BuildContext context, SafeHaven haven, LatLng userPos) {
+    final distKm = haven.distanceKmFrom(userPos);
+    final bearing = haven.compassBearingFrom(userPos);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: haven.type.color.withAlpha(25),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(haven.type.icon, color: haven.type.color, size: 22),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          haven.type.displayName,
+                          style: TextStyle(color: haven.type.color, fontWeight: FontWeight.bold, fontSize: 11),
+                        ),
+                        Text(
+                          haven.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF059669).withAlpha(20),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '${distKm.toStringAsFixed(1)} km',
+                      style: const TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '🧭 Bearing $bearing • Altitude: ${haven.altitudeMeters.toStringAsFixed(0)} m • Capacity: ${haven.capacity} people',
+                style: const TextStyle(fontSize: 11, color: AppTheme.textMuted, fontFamily: 'monospace'),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '📻 Emergency Radio: ${haven.emergencyRadioFreq}',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primary),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '💡 Safe Access: ${haven.roadAccessNotes}',
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'FACILITY CAPABILITIES:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 0.8, color: AppTheme.textMuted),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: haven.medicalCapabilities
+                    .map(
+                      (cap) => Chip(
+                        label: Text(cap, style: const TextStyle(fontSize: 10)),
+                        padding: EdgeInsets.zero,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        backgroundColor: const Color(0xFFF1F5F9),
+                        side: BorderSide.none,
+                      ),
+                    )
+                    .toList(),
+              ),
             ],
           ),
         );

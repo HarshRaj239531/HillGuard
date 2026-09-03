@@ -10,6 +10,7 @@ import '../../core/storage/local_store.dart';
 import '../../core/mesh/mesh_engine.dart';
 import '../../core/sync/sync_manager.dart';
 import '../../core/theme/app_theme.dart';
+import '../assistant/hills_assistant_screen.dart';
 import '../b1_landslide/landslide_reporter_screen.dart';
 import '../b6_road_mesh/road_reporter_screen.dart';
 import '../b6_road_mesh/route_status_board.dart';
@@ -27,9 +28,10 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   StreamSubscription<String>? _alertSub;
 
-  final List<Widget> _pages = [
-    const _DashboardTab(),
+  late final List<Widget> _pages = [
+    _DashboardTab(onNavigateToTab: (index) => setState(() => _currentIndex = index)),
     const DisasterMapScreen(),
+    const HillsAssistantScreen(),
     const MeshHudScreen(),
   ];
 
@@ -105,6 +107,11 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: Icon(Icons.map_outlined, color: AppTheme.textSecondary),
               selectedIcon: Icon(Icons.map, color: AppTheme.primary),
               label: 'Disaster Map',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.health_and_safety_outlined, color: AppTheme.textSecondary),
+              selectedIcon: Icon(Icons.health_and_safety, color: Color(0xFFDC2626)),
+              label: 'Hills AI',
             ),
             NavigationDestination(
               icon: Icon(Icons.hub_outlined, color: AppTheme.textSecondary),
@@ -223,7 +230,8 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _DashboardTab extends StatelessWidget {
-  const _DashboardTab();
+  final Function(int)? onNavigateToTab;
+  const _DashboardTab({this.onNavigateToTab});
 
   @override
   Widget build(BuildContext context) {
@@ -351,7 +359,73 @@ class _DashboardTab extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+
+          // Hills Assistant 🔴 (AMBITIOUS) Hero Banner Card
+          GestureDetector(
+            onTap: () => onNavigateToTab?.call(2), // Switch to Hills AI tab
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFEF2F2), Color(0xFFFFFBEB)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFDC2626).withAlpha(90), width: 1.2),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x06000000), blurRadius: 10, offset: Offset(0, 3)),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDC2626),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.health_and_safety_rounded, color: Colors.white, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Text(
+                              'Hills Assistant (0% Net AI)',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF991B1B)),
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFDC2626),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text('🔴 AMBITIOUS', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        const Text(
+                          'Offline triage, nearest PHC/Hospital geolocation, cold exposure & cloudburst survival.',
+                          style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, height: 1.3),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFFDC2626)),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 14),
 
           // Two Quick Action Hero Cards (B1 + B6)
           Row(

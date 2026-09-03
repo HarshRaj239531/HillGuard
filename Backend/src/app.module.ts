@@ -5,6 +5,7 @@ import { LandslideModule } from './modules/landslide/landslide.module';
 import { RoadModule } from './modules/road/road.module';
 import { MeshModule } from './modules/mesh/mesh.module';
 import { AlertsModule } from './modules/alerts/alerts.module';
+import { SafeHavenModule } from './modules/safe-haven/safe-haven.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { AlertsModule } from './modules/alerts/alerts.module';
     RoadModule,
     MeshModule,
     AlertsModule,
+    SafeHavenModule,
   ],
   controllers: [AppController],
 })

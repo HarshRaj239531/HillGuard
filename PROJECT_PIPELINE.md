@@ -1,5 +1,5 @@
 # 🛡️ HillGuard: Complete Technical Pipeline & Demo Blueprint
-### Unified Solution for B1 (Offline Landslide Reporter & Alert Relay) & B6 (Road Status Mesh)
+### Unified Flagship for 🔴 AMBITIOUS (Disaster-Ready Hills Assistant), 🟠 B1 (Landslide Reporter & Alert Relay), and 🟠 B6 (Road Status Mesh)
 
 ---
 
@@ -7,9 +7,10 @@
 
 During heavy monsoon downpours (>300 mm rain in 12 hours) in mountainous regions like Darjeeling, Sikkim, and Uttarakhand, cell towers and power grids are wiped out. 
 
-**HillGuard solves the two critical failure points identified by disaster authorities:**
-1. **The B1 Gap (Report Up & Relay Down):** Ground walkers notice slope warning signs (tension cracks, seepage, retaining wall bulges), but have no connectivity to report them. Conversely, official meteorological high-risk alerts issued by the IMD/NDMA never reach isolated villagers with zero signal.
-2. **The B6 Gap (Road Status Mesh):** Commuters asking *"Is NH-55 open? Is Rohini blocked?"* are blind to fresh mudslides and rockfalls. HillGuard turns everyday mobile phones into a multi-hop mesh network that passes blockage reports car-to-car without internet, and summarizes them into an on-device highway status board.
+**HillGuard unites all three problem statements into one civic emergency ecosystem:**
+1. **🔴 AMBITIOUS Flagship (Disaster-Ready Hills Assistant):** An on-device emergency companion for hill crises — cloudburst, landslide entrapment, cold exposure/hypothermia, mountain road cut-offs, being isolated from hospitals — offering instant step-by-step triage guidance and GPS-calculated nearest Primary Health Centre (PHC) / Safe Haven without signal.
+2. **🟠 B1 (Report Up & Relay Down):** Walker logs slope warning signs (tension cracks, seepage, retaining wall bulges) with on-device severity scoring. Connected phones receive official high-risk warnings and rebroadcast them peer-to-peer down to phones with no signal.
+3. **🟠 B6 (Road Status Mesh):** Turns moving vehicles into a multi-hop mesh network that passes blockage reports car-to-car without internet, synthesizing them into an on-device Route Status Board.
 
 ---
 

@@ -86,3 +86,57 @@ INSERT INTO road_reports (
     FALSE, FALSE, 'Heavy sludge and 3-meter boulders covering both lanes after cloudburst.',
     'pwd-patrol-07', 2
 ) ON CONFLICT (id) DO NOTHING;
+
+-- 4. Safe Havens, Hospitals & Disaster Evacuation Camps (AMBITIOUS)
+CREATE TABLE IF NOT EXISTS safe_havens (
+    id VARCHAR(64) PRIMARY KEY,
+    name VARCHAR(128) NOT NULL,
+    type VARCHAR(64) NOT NULL,
+    latitude DOUBLE PRECISION NOT NULL,
+    longitude DOUBLE PRECISION NOT NULL,
+    altitude_meters DOUBLE PRECISION NOT NULL DEFAULT 1000,
+    locality VARCHAR(128) NOT NULL,
+    capacity INTEGER NOT NULL DEFAULT 100,
+    medical_capabilities JSONB NOT NULL DEFAULT '[]'::jsonb,
+    emergency_radio_freq VARCHAR(128) NOT NULL,
+    road_access_notes TEXT NOT NULL,
+    location GEOGRAPHY(Point, 4326) GENERATED ALWAYS AS (ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography) STORED
+);
+
+CREATE INDEX IF NOT EXISTS idx_safe_haven_location ON safe_havens USING GIST (location);
+
+INSERT INTO safe_havens (
+    id, name, type, latitude, longitude, altitude_meters, locality, capacity,
+    medical_capabilities, emergency_radio_freq, road_access_notes
+) VALUES 
+(
+    'haven-001', 'Kurseong Sub-Divisional Hospital', 'subDivisionalHospital',
+    26.8845, 88.2812, 1480, 'Kurseong Town Centre', 120,
+    '["Trauma Surgery", "High-Pressure Oxygen Supply", "Hypothermia Rewarming Ward", "Blood Bank", "24x7 Emergency Doctors"]'::jsonb,
+    'VHF 154.600 MHz (Hospital Channel 1)', 'Approachable via Rohini Road even when NH-55 Pagla Jhora is blocked.'
+),
+(
+    'haven-002', 'Tindharia Railway Community Shelter & PHC', 'primaryHealthCentre',
+    26.8560, 88.3390, 856, 'Tindharia Mid-Slopes', 85,
+    '["First-Aid Triage", "Burn & Fracture Splinting", "IV Fluids & Dehydration Packs", "Oxygen Concentrator"]'::jsonb,
+    'VHF 154.250 MHz', 'Situated on stable rock spur above the Tindharia railway workshop.'
+),
+(
+    'haven-003', 'Makaibari Community Relief Safe Haven', 'disasterReliefShelter',
+    26.8520, 88.2710, 1250, 'Makaibari Lower Valley', 250,
+    '["Emergency Thermal Blankets", "Potable Water Filtration Unit", "Dry Food Stock (7 Days)", "Basic Trauma Dressing"]'::jsonb,
+    'PMR446 Channel 7 / 446.08125 MHz', 'Direct access via Pankhabari Heritage Cut. Zero subsidence risk.'
+),
+(
+    'haven-004', 'Sukna Army Base Hospital & Relief Staging', 'subDivisionalHospital',
+    26.7920, 88.3620, 165, 'Sukna Plains Foothills', 350,
+    '["Air-Evacuation Helipad", "ICU & Ventilators", "Orthopedic Reconstruction", "NDRF Staging Battalion"]'::jsonb,
+    'VHF 155.100 MHz (Military Disaster Net)', 'All-weather plains access. Serves as primary casualty evacuation point.'
+),
+(
+    'haven-005', 'Teesta Low Dam Safe Refuge & SDRF Outpost', 'emergencyRescuePost',
+    26.9280, 88.4620, 210, 'Kalijhora Canyon Floor', 90,
+    '["River Rescue Boats (Zodiacs)", "Spinal Immobilization Boards", "Crush Injury Medication", "Satellite Phone Uplink"]'::jsonb,
+    'VHF 152.850 MHz (SDRF River Net)', 'Located 40m above river high-water line on engineered concrete abutment.'
+) ON CONFLICT (id) DO NOTHING;
+
