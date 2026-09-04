@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -12,6 +12,10 @@ class NotificationService {
 
   static Future<void> initialize() async {
     if (_isInitialized) return;
+    if (kIsWeb) {
+      _isInitialized = true;
+      return;
+    }
 
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const initSettings = InitializationSettings(android: androidSettings);
@@ -48,6 +52,10 @@ class NotificationService {
     required String body,
     int id = 1,
   }) async {
+    if (kIsWeb) {
+      debugPrint('[Web Alert Notification] $title: $body');
+      return;
+    }
     final androidDetails = AndroidNotificationDetails(
       channelId,
       channelName,
