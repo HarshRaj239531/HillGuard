@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/assistant/offline_assistant_engine.dart';
+import 'core/localization/localization_service.dart';
 import 'core/location/location_service.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/storage/local_store.dart';
@@ -20,6 +21,7 @@ void main() async {
   final syncManager = SyncManager(localStore: localStore);
   final locationService = LocationService();
   final assistantEngine = OfflineAssistantEngine();
+  final localizationService = LocalizationService();
 
   runApp(
     MultiProvider(
@@ -29,6 +31,7 @@ void main() async {
         ChangeNotifierProvider<SyncManager>.value(value: syncManager),
         ChangeNotifierProvider<LocationService>.value(value: locationService),
         ChangeNotifierProvider<OfflineAssistantEngine>.value(value: assistantEngine),
+        ChangeNotifierProvider<LocalizationService>.value(value: localizationService),
       ],
       child: const HillGuardApp(),
     ),

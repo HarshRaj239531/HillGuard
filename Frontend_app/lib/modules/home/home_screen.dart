@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/localization/localization_service.dart';
 import '../../core/models/hazard_types.dart';
 import '../../core/models/landslide_report.dart';
 import '../../core/models/road_report.dart';
@@ -86,6 +87,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationService>();
+
     return Scaffold(
       body: _pages[_currentIndex],
       bottomNavigationBar: Container(
@@ -99,26 +102,26 @@ class _HomeScreenState extends State<HomeScreen> {
           indicatorColor: AppTheme.primary.withAlpha(25),
           elevation: 0,
           onDestinationSelected: (index) => setState(() => _currentIndex = index),
-          destinations: const [
+          destinations: [
             NavigationDestination(
-              icon: Icon(Icons.dashboard_outlined, color: AppTheme.textSecondary),
-              selectedIcon: Icon(Icons.dashboard, color: AppTheme.primary),
-              label: 'Field Feed',
+              icon: const Icon(Icons.dashboard_outlined, color: AppTheme.textSecondary),
+              selectedIcon: const Icon(Icons.dashboard, color: AppTheme.primary),
+              label: loc.t('tab_feed'),
             ),
             NavigationDestination(
-              icon: Icon(Icons.map_outlined, color: AppTheme.textSecondary),
-              selectedIcon: Icon(Icons.map, color: AppTheme.primary),
-              label: 'Disaster Map',
+              icon: const Icon(Icons.map_outlined, color: AppTheme.textSecondary),
+              selectedIcon: const Icon(Icons.map, color: AppTheme.primary),
+              label: loc.t('tab_map'),
             ),
             NavigationDestination(
-              icon: Icon(Icons.health_and_safety_outlined, color: AppTheme.textSecondary),
-              selectedIcon: Icon(Icons.health_and_safety, color: Color(0xFFDC2626)),
-              label: 'Hills AI',
+              icon: const Icon(Icons.health_and_safety_outlined, color: AppTheme.textSecondary),
+              selectedIcon: const Icon(Icons.health_and_safety, color: Color(0xFFDC2626)),
+              label: loc.t('tab_assistant'),
             ),
             NavigationDestination(
-              icon: Icon(Icons.hub_outlined, color: AppTheme.textSecondary),
-              selectedIcon: Icon(Icons.hub, color: AppTheme.meshActive),
-              label: 'Mesh HUD',
+              icon: const Icon(Icons.hub_outlined, color: AppTheme.textSecondary),
+              selectedIcon: const Icon(Icons.hub, color: AppTheme.meshActive),
+              label: loc.t('tab_hud'),
             ),
           ],
         ),
@@ -129,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
               foregroundColor: Colors.white,
               elevation: 3,
               icon: const Icon(Icons.add_alert, size: 20),
-              label: const Text('New Field Report', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              label: Text(loc.t('new_report_btn'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
               onPressed: () => _showReportTypeDialog(context),
             )
           : null,
@@ -240,6 +243,7 @@ class _DashboardTab extends StatelessWidget {
     final localStore = context.watch<LocalStore>();
     final meshEngine = context.watch<MeshEngine>();
     final syncManager = context.watch<SyncManager>();
+    final loc = context.watch<LocalizationService>();
 
     final landslides = localStore.landslideReports;
     final roads = localStore.roadReports;
@@ -272,16 +276,60 @@ class _DashboardTab extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('HillGuard', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.textPrimary)),
+                Text(loc.t('app_title'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.textPrimary)),
                 Text(
-                  'Disaster & Road Intelligence Mesh',
-                  style: TextStyle(fontSize: 10, color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
+                  loc.t('app_subtitle'),
+                  style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
           ],
         ),
         actions: [
+          // Language Switcher (15% Belonging: EN | नेपाली | हिन्दी | বাংলা)
+          PopupMenuButton<AppLanguage>(
+            tooltip: 'Language / भाषा',
+            initialValue: loc.currentLanguage,
+            onSelected: (lang) => loc.setLanguage(lang),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              margin: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceElevated,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppTheme.borderSubtle),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.language, size: 15, color: AppTheme.primary),
+                  const SizedBox(width: 4),
+                  Text(
+                    loc.currentLanguage.label,
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                  ),
+                  const Icon(Icons.arrow_drop_down, size: 16, color: AppTheme.textSecondary),
+                ],
+              ),
+            ),
+            itemBuilder: (ctx) => AppLanguage.values.map((lang) {
+              return PopupMenuItem(
+                value: lang,
+                child: Row(
+                  children: [
+                    Text(lang.label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(width: 8),
+                    Text('(${lang.fullName})', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                    if (lang == loc.currentLanguage) ...[
+                      const Spacer(),
+                      const Icon(Icons.check, size: 16, color: AppTheme.primary),
+                    ],
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(width: 4),
           if (kIsWeb)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
@@ -289,12 +337,12 @@ class _DashboardTab extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   elevation: 0,
                 ),
-                icon: const Icon(Icons.install_mobile_rounded, size: 14),
-                label: const Text('Get App / APK', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                icon: const Icon(Icons.install_mobile_rounded, size: 13),
+                label: Text(loc.t('get_app'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10.5)),
                 onPressed: () => _showInstallModal(context),
               ),
             ),
@@ -317,7 +365,7 @@ class _DashboardTab extends StatelessWidget {
                   ),
             onPressed: () => syncManager.syncNow(),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
         ],
       ),
       body: ListView(
@@ -436,6 +484,116 @@ class _DashboardTab extends StatelessWidget {
 
           const SizedBox(height: 14),
 
+          // Works Offline 25%: Stage Mode Proof Banner
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF059669).withAlpha(15),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFF059669).withAlpha(90), width: 1.2),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF059669).withAlpha(30),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.airplanemode_active, color: Color(0xFF059669), size: 16),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        loc.t('offline_stage_mode'),
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF059669), letterSpacing: 0.5),
+                      ),
+                      Text(
+                        loc.t('no_server_calls'),
+                        style: const TextStyle(fontSize: 10.5, color: AppTheme.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF059669),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text('STAGE PROOF', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // Usefulness to the Hills 25%: Real Hill Persona Quick Presets
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.people_alt_outlined, size: 15, color: AppTheme.primary),
+                  const SizedBox(width: 6),
+                  Text(
+                    loc.t('personas_title'),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: AppTheme.textPrimary),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildPersonaChip(
+                      context,
+                      icon: Icons.train_outlined,
+                      title: loc.t('persona_railway'),
+                      subtitle: loc.t('persona_railway_sub'),
+                      badge: 'DHR RAILWAY',
+                      color: const Color(0xFF0284C7),
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const LandslideReporterScreen()));
+                      },
+                    ),
+                    const SizedBox(width: 10),
+                    _buildPersonaChip(
+                      context,
+                      icon: Icons.directions_car_outlined,
+                      title: loc.t('persona_passenger'),
+                      subtitle: loc.t('persona_passenger_sub'),
+                      badge: 'ROAD COMMUTER',
+                      color: const Color(0xFFD97706),
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const RouteStatusBoard()));
+                      },
+                    ),
+                    const SizedBox(width: 10),
+                    _buildPersonaChip(
+                      context,
+                      icon: Icons.home_work_outlined,
+                      title: loc.t('persona_farmer'),
+                      subtitle: loc.t('persona_farmer_sub'),
+                      badge: 'LOCAL RESIDENT',
+                      color: const Color(0xFF059669),
+                      onTap: () {
+                        onNavigateToTab?.call(2); // Jump to Hills AI tab
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
           // Hills Assistant 🔴 (AMBITIOUS) Hero Banner Card
           GestureDetector(
             onTap: () => onNavigateToTab?.call(2), // Switch to Hills AI tab
@@ -470,9 +628,9 @@ class _DashboardTab extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            const Text(
-                              'Hills Assistant (0% Net AI)',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF991B1B)),
+                            Text(
+                              loc.t('hills_assistant_title'),
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF991B1B)),
                             ),
                             const Spacer(),
                             Container(
@@ -486,9 +644,9 @@ class _DashboardTab extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 3),
-                        const Text(
-                          'Offline triage, nearest PHC/Hospital geolocation, cold exposure & cloudburst survival.',
-                          style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, height: 1.3),
+                        Text(
+                          loc.t('hills_assistant_desc'),
+                          style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary, height: 1.3),
                         ),
                       ],
                     ),
@@ -540,14 +698,14 @@ class _DashboardTab extends StatelessWidget {
                           child: const Icon(Icons.landslide, color: AppTheme.severityHigh, size: 24),
                         ),
                         const SizedBox(height: 12),
-                        const Text(
-                          'B1 Landslide',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary),
+                        Text(
+                          loc.t('b1_landslide_title'),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Crack scan & safety AI evaluation',
-                          style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, height: 1.3),
+                        Text(
+                          loc.t('b1_landslide_sub'),
+                          style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary, height: 1.3),
                         ),
                       ],
                     ),
@@ -590,14 +748,14 @@ class _DashboardTab extends StatelessWidget {
                           child: const Icon(Icons.add_road, color: AppTheme.accentTeal, size: 24),
                         ),
                         const SizedBox(height: 12),
-                        const Text(
-                          'B6 Road Mesh',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary),
+                        Text(
+                          loc.t('b6_road_title'),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Report obstacle & relay over phone mesh',
-                          style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, height: 1.3),
+                        Text(
+                          loc.t('b6_road_sub'),
+                          style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary, height: 1.3),
                         ),
                       ],
                     ),
@@ -621,7 +779,7 @@ class _DashboardTab extends StatelessWidget {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   icon: const Icon(Icons.alt_route, size: 18),
-                  label: const Text('Route Board (B6)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  label: Text(loc.t('route_board'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -640,7 +798,7 @@ class _DashboardTab extends StatelessWidget {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   icon: const Icon(Icons.campaign, size: 18),
-                  label: const Text('Relay Alert (B1)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  label: Text(loc.t('relay_alert'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                   onPressed: () => _showOfficialAlertBroadcastDialog(context),
                 ),
               ),
@@ -654,7 +812,7 @@ class _DashboardTab extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'LIVE COMMUNITY HAZARD FEED',
+                loc.t('live_feed_header'),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontSize: 11,
                       letterSpacing: 1.1,
@@ -1214,6 +1372,76 @@ class _DashboardTab extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPersonaChip(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String badge,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: 220,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withAlpha(80), width: 1.2),
+          boxShadow: const [
+            BoxShadow(color: Color(0x06000000), blurRadius: 6, offset: Offset(0, 2)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: color.withAlpha(25),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, color: color, size: 16),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: color.withAlpha(20),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    badge,
+                    style: TextStyle(color: color, fontSize: 8.5, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary, height: 1.2),
+            ),
           ],
         ),
       ),
