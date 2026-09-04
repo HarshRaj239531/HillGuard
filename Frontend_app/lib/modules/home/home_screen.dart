@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../core/localization/localization_service.dart';
+import '../../core/utils/download_helper.dart';
 import '../../core/models/hazard_types.dart';
 import '../../core/models/landslide_report.dart';
 import '../../core/models/road_report.dart';
@@ -1365,16 +1365,9 @@ class _DashboardTab extends StatelessWidget {
                       ),
                       icon: const Icon(Icons.download_rounded, size: 18),
                       label: const Text('Download HillGuard-release.apk', style: TextStyle(fontWeight: FontWeight.bold)),
-                      onPressed: () async {
+                      onPressed: () {
                         Navigator.pop(ctx);
-                        try {
-                          await launchUrl(Uri.parse('HillGuard-release.apk'), mode: LaunchMode.externalApplication);
-                        } catch (_) {
-                          await launchUrl(
-                            Uri.parse('https://github.com/HarshRaj239531/HillGuard/raw/gh-pages/HillGuard-release.apk'),
-                            mode: LaunchMode.externalApplication,
-                          );
-                        }
+                        triggerApkDownload();
                       },
                     ),
                   ),

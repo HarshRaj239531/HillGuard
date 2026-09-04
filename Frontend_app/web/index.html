@@ -37,6 +37,15 @@
 </head>
 <body>
   <script>
+    window.downloadApk = function () {
+      var a = document.createElement('a');
+      a.href = 'HillGuard-release.apk';
+      a.download = 'HillGuard-release.apk';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
+
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
         navigator.serviceWorker.register('sw.js').then(function (reg) {
