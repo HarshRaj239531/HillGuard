@@ -638,11 +638,15 @@ class _DashboardTab extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            Text(
-                              loc.t('hills_assistant_title'),
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF991B1B)),
+                            Expanded(
+                              child: Text(
+                                loc.t('hills_assistant_title'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF991B1B)),
+                              ),
                             ),
-                            const Spacer(),
+                            const SizedBox(width: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
