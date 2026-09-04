@@ -85,9 +85,19 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  static final LocalizationService _fallbackLoc = LocalizationService();
+
+  static LocalizationService _safeLoc(BuildContext context) {
+    try {
+      return Provider.of<LocalizationService>(context);
+    } catch (_) {
+      return _fallbackLoc;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final loc = context.watch<LocalizationService>();
+    final loc = _safeLoc(context);
 
     return Scaffold(
       body: _pages[_currentIndex],
@@ -243,7 +253,7 @@ class _DashboardTab extends StatelessWidget {
     final localStore = context.watch<LocalStore>();
     final meshEngine = context.watch<MeshEngine>();
     final syncManager = context.watch<SyncManager>();
-    final loc = context.watch<LocalizationService>();
+    final loc = _HomeScreenState._safeLoc(context);
 
     final landslides = localStore.landslideReports;
     final roads = localStore.roadReports;
