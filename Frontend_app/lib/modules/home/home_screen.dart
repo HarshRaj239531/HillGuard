@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/models/hazard_types.dart';
 import '../../core/models/landslide_report.dart';
 import '../../core/models/road_report.dart';
@@ -280,6 +282,22 @@ class _DashboardTab extends StatelessWidget {
           ],
         ),
         actions: [
+          if (kIsWeb)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  elevation: 0,
+                ),
+                icon: const Icon(Icons.install_mobile_rounded, size: 14),
+                label: const Text('Get App / APK', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                onPressed: () => _showInstallModal(context),
+              ),
+            ),
           IconButton(
             tooltip: 'Sync Queue Now',
             icon: syncManager.isSyncing
@@ -305,6 +323,63 @@ class _DashboardTab extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (kIsWeb)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF0284C7).withAlpha(30),
+                      const Color(0xFF38BDF8).withAlpha(15),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFF0284C7).withAlpha(100), width: 1.2),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0284C7),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.install_mobile_rounded, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Install HillGuard (Offline PWA & APK)',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
+                          ),
+                          Text(
+                            'Add to Home Screen or download native APK for zero-signal operation',
+                            style: TextStyle(fontSize: 10.5, color: AppTheme.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0284C7),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        elevation: 0,
+                      ),
+                      onPressed: () => _showInstallModal(context),
+                      child: const Text('Install / APK', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           // Emergency Mesh Status Card (Clean Light Style)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1005,6 +1080,142 @@ class _DashboardTab extends StatelessWidget {
             },
           ),
         ],
+      ),
+    );
+  }
+
+  void _showInstallModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.borderSubtle,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withAlpha(30),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.install_mobile_rounded, color: AppTheme.primary, size: 24),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Get HillGuard App', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                      Text('Choose how you want to run HillGuard offline', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Option 1: Instant PWA
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceElevated,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.borderSubtle),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(Icons.bolt_rounded, color: AppTheme.severityHigh, size: 20),
+                      SizedBox(width: 8),
+                      Text('Option 1: Instant PWA Install (No Download)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'No 60MB APK download required! Already cached on your phone or PC.\n'
+                    '• On Desktop Chrome: Look at the top-right of your address bar for the "Install" icon (💻 ⬇️).\n'
+                    '• On Mobile: Tap the 3 dots (⋮) in Chrome and select "Install app" or "Add to Home screen".',
+                    style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary, height: 1.4),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            // Option 2: Download Native APK
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceElevated,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.primary.withAlpha(90)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(Icons.android_rounded, color: AppTheme.primary, size: 20),
+                      SizedBox(width: 8),
+                      Text('Option 2: Download Android APK (58.8 MB)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Full native Android package with background Wi-Fi hotspot mesh scanning, hardware vibration, and offline topographic vector map.',
+                    style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary, height: 1.4),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.download_rounded, size: 18),
+                      label: const Text('Download HillGuard-release.apk', style: TextStyle(fontWeight: FontWeight.bold)),
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        try {
+                          await launchUrl(Uri.parse('HillGuard-release.apk'), mode: LaunchMode.externalApplication);
+                        } catch (_) {
+                          await launchUrl(
+                            Uri.parse('https://github.com/HarshRaj239531/HillGuard/raw/gh-pages/HillGuard-release.apk'),
+                            mode: LaunchMode.externalApplication,
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }
