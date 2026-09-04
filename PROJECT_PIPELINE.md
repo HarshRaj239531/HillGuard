@@ -188,7 +188,28 @@ During heavy monsoon downpours (>300 mm rain in 12 hours) in mountainous regions
 
 ## 6. Pre-Built APK Binaries
 
-- **Release APK (Optimized, 58.3 MB):**  
+- **Release APK (Optimized):**  
   `Frontend_app/build/app/outputs/flutter-apk/app-release.apk`
-- **Debug APK (193 MB):**  
+- **Debug APK:**  
   `Frontend_app/build/app/outputs/flutter-apk/app-debug.apk`
+
+---
+
+## 7. 🌐 Public PWA Live Deployment & Offline Testing Guide
+
+### Official Public URL:
+👉 **[https://harshraj239531.github.io/HillGuard/](https://harshraj239531.github.io/HillGuard/)**
+
+### Deliverable Verification ("Works after one online load"):
+1. **Initial Online Load:**
+   - Open [https://harshraj239531.github.io/HillGuard/](https://harshraj239531.github.io/HillGuard/) on a smartphone (Chrome/Safari) or Desktop.
+   - The custom PWA Service Worker (`sw.js`) automatically pre-caches the entire Flutter engine, WebAssembly runtime, offline triage rulebase, and safe havens directory in browser cache storage.
+2. **Install to Home Screen:**
+   - On Android Chrome: Tap the banner **"Add HillGuard to Home screen"** or menu > **"Install app"**.
+   - On iOS Safari: Tap **Share** > **"Add to Home Screen"**.
+   - An app icon appears on the device home screen with standalone display (no browser address bar).
+3. **Simulate Zero Signal (Flight Mode):**
+   - Turn **ON Airplane / Flight Mode** (0% Wi-Fi, 0% Cellular Data).
+   - Reopen the installed PWA or refresh the browser.
+   - **Result:** The application boots instantly from local cache without a network connection.
+   - All critical modules (**Disaster-Ready Hills Assistant**, **SOS Beacon Broadcast**, **Nearest Safe Haven Finder**, **B1 Landslide Assessment**, and **B6 Road Status Board**) operate seamlessly on-device.
