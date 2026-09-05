@@ -29,7 +29,8 @@ services:
     environment:
       PORT: 3000
       DATABASE_URL: postgresql://hillguard:hillguard_secure_pwd@db:5432/hillguard_db
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      LOCAL_GEMMA_ENABLED: "true"
+      GEMMA_MODEL: "gemma-4-local"
     ports:
       - "3000:3000"
     depends_on:
